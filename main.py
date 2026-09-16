@@ -12,36 +12,38 @@ def simple_app(environ, start_response):
 
     path = environ["PATH_INFO"]
     headers = [('content-Type: application/json', 'text/plain; charset=utf-8')]
-
+    parts = path.strip("/").split("/")
     # /tasks endpoint
-    if path == "/tasks":
+    if parts[0] == "tasks":
         # GET
         if environ["REQUEST_METHOD"] == "GET":
 
-            params = parse_qs(environ["QUERY_STRING"])
-            print(path)
-            id = params.get("id")
-            if(id != None):
-                key = int(id[0])
-                value = dic.get(key)
-                if value == None:
-                    status = '404 Not Found'
+            #params = parse_qs(environ["QUERY_STRING"])
+            #print(environ["QUERY_STRING"])
+            #id = params.get("id")
+            if(len(parts) == 2):
+                id = int(parts[1])
+                if(id != None):
+                    
+                    value = dic.get(id)
+                    if value == None:
+                        status = '404 Not Found'
+                        start_response(status, headers)
+                        return [b"No task with such id exists"]
+                    status = '200 OK'
                     start_response(status, headers)
-                    return [b"No task with such id exists"]
-                status = '200 OK'
-                start_response(status, headers)
-                return [json.dumps(value).encode("utf-8")]
+                    return [json.dumps(value).encode("utf-8")]
 
             else:
-                print("get all")
+                #print("get all")
                 value = json.dumps(dic)
                 status = '200 OK'
                 start_response(status, headers)
                 return [value.encode("utf-8")]
         # POST
         elif environ["REQUEST_METHOD"] == "POST":
-            params = parse_qs(environ["QUERY_STRING"])
-            print(path)
+            #params = parse_qs(environ["QUERY_STRING"])
+            #print(path)
             length = int(environ.get("CONTENT_LENGTH", 0))
             body = environ["wsgi.input"].read(length)
             data = json.loads(body)
@@ -52,42 +54,48 @@ def simple_app(environ, start_response):
             dic[i] = data
             status = '201 Created'
             start_response(status, headers)
-            return [json.dumps(dic[i]).encode("utf-8")]
+            returningBody = {"id" : i,
+                            **data
+                                         }
+            return [json.dumps(returningBody).encode("utf-8")]
         # PATCH
         elif environ["REQUEST_METHOD"] == "PATCH":
-            params = parse_qs(environ["QUERY_STRING"])
-            print(path)
+            #params = parse_qs(environ["QUERY_STRING"])
+            #print(path)
             length = int(environ.get("CONTENT_LENGTH", 0))
             body = environ["wsgi.input"].read(length)
             data = json.loads(body)
             
-            id = int(params.get("id")[0])
+            #id = int(params.get("id")[0])
+            id = int(parts[1])
             if dic.get(id) == None:
                 status = '404 Not Found'
                 start_response(status, headers)
                 return [b"No tasks with such id found"]
             dic.get(id).update(data)
             #dic[id] = data
-            status = '201 Created'
+            status = '200 OK'
             start_response(status, headers)
             return [json.dumps(dic[id]).encode("utf-8")]
         # DELETE
         elif environ["REQUEST_METHOD"] == "DELETE":
 
-            params = parse_qs(environ["QUERY_STRING"])
-            id = params.get("id")
+            #params = parse_qs(environ["QUERY_STRING"])
+            #id = params.get("id")
+            id = int(parts[1])
             if(id != None):
-                key = int(id[0])
-                value = dic.get(key)
-                if not (key in dic.keys()):
+                
+                
+                if not (id in dic.keys()):
                     status = '404 Not Found'
                     start_response(status, headers)
-                    return [b"no hay una keydubi"]
+                    return [b"There's no task with such id"]
+                value = dic.get(id)
                 if value == None:
                     status = '204 No Content'
                     start_response(status, headers)
-                    return [b"no hay una tareubi"]
-                del dic[int(id[0])]
+                    return [b"There's no content assigned to ID"]
+                del dic[id]
                 status = '200 OK'
                 start_response(status, headers)
                 return [b""]
